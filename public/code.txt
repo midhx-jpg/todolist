@@ -1,0 +1,134 @@
+const express = require("express");
+const bodyParser = require("body-parser");
+const ejs = require("ejs");
+const app = express();
+const mongoose = require("mongoose");
+
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+mongoose.connect("mongodb://localhost:27017/todoDB");
+
+const itemsSchema = new mongoose.Schema({
+    name: String
+});
+const workItemsSchema = new mongoose.Schema({
+    name: String
+});
+
+const Item = mongoose.model("Item", itemsSchema);
+const WorkItem = mongoose.model("Work Item", workItemsSchema);
+
+const item1 = new Item({ name: "Test item1" });
+const item2 = new Item({ name: "Test item2" });
+const item3 = new Item({ name: "Test item3" });
+
+const workItem1 = new WorkItem({ name: "Work Test item1" });
+const workItem2 = new WorkItem({ name: "Work Test item2" });
+const workItem3 = new WorkItem({ name: "Work Test item3" });
+
+const defaultItems = [item1, item2, item3];
+const defaultWorkItems = [workItem1, workItem2, workItem3];
+
+app.get("/", async function (req, res) {
+
+    let foundItems = await Item.find({});
+
+    try {
+        if (foundItems.length === 0) {
+            foundItems = await Item.insertMany(defaultItems);
+        }
+
+    } catch (err) {
+        console.log(err);
+    };
+    res.render("list", { listTitle: "Football", newItems: foundItems });
+});
+
+app.get("/work", async function (req, res) {
+    let foundWorkItems = await WorkItem.find({});
+
+    try {
+        if (foundWorkItems.length === 0) {
+            foundWorkItems = await WorkItem.insertMany(defaultWorkItems)
+        }
+
+    } catch (err) {
+        console.log(err);
+    };
+    res.render("list", { listTitle: "Cricket", newItems: foundWorkItems });
+
+});
+
+app.post("/", async function (req, res) {
+    try {
+        let item = req.body.newItem;
+        if (req.body.list === "Work") {
+            await WorkItem.create({ name: item });
+            res.redirect("/work");
+        } else {
+            await Item.create({ name: item });
+            res.redirect("/");
+        };
+    } catch (err) {
+        console.log(err);
+    }
+
+});
+
+app.get("/about", function (req, res) {
+    res.render("about");
+})
+
+app.listen(4000, function () {
+    console.log("The app is running on the port 4000");
+});
+
+
+-----------------------------------list.ejs------------------------------------
+
+
+
+<%- include("header") -%>
+
+    <body>
+        <div class="box" id="heading">
+            <h1>
+                <%= listTitle %>
+            </h1>
+        </div>
+
+        <div class="box">
+            <% if (newItems) { %>
+            <% newItems.forEach(function(item){ %>
+                <div class="item">
+                    <input type="checkbox">
+                    <p>
+                        <%= item.name; %>
+                    </p>
+                </div>
+                <% }) %>
+                <% } %>
+
+                    <form class="item" action="/" method="post">
+                        <input type="text" name="newItem" placeholder="New item..." autocomplete="off">
+                        <button type="submit" name="list" value=<%=listTitle %>>+</button>
+                    </form>
+        </div>
+
+        <%- include("footer") -%>
+
+-------------------------------------------------------------------------------------------------------
+
+List.findOne({ name: customListName })
+            .then((result) => {
+                if (result != null) {
+                    console.log("match found ✅", result);
+                } else {
+                    console.log("Not found ❌");
+                }
+            })
+            .catch((error) => {
+                console.log("ERROR: ❌", error);
+            });
